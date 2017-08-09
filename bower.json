@@ -1,0 +1,24 @@
+{
+  "name": "Desktop",
+  "authors": [
+    "Your Name <you@example.com>"
+  ],
+  "description": "",
+  "main": "",
+  "license": "MIT",
+  "homepage": "",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "store2": "store#^2.5.1"
+  },
+  "devDependencies": {
+    "jquery": "^3.2.1"
+  }
+}
