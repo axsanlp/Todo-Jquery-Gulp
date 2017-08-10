@@ -164,3 +164,34 @@ textarea, input[type=text], input[type=date] {
     height:30px;
     display: none;
 }
+.task-list .complated{
+    opacity: 0.5;
+    position: relative;
+}
+.task-list .complated:after{
+    content: "";
+    display: block;
+    width:88%;
+    margin: auto;
+    height:1px;
+    background: #000;
+    position: absolute;
+    top:50%;
+    left: 4%;
+}
+
+.msg{
+    display: none;
+    text-align: center;
+    background: #ffe264;
+    padding: 10px;
+    color: #333;
+}
+.msg .msg-content{
+    display: inline-block;
+    margin-right: 10px;
+}
+.msg .msg-btn{
+    cursor: pointer;
+    display: inline-block;
+}

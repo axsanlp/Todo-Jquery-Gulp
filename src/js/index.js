@@ -1,3 +1,5 @@
+;(function(){
+
 /*var arr=[1,23,44,5];
 store.set("aa",arr);
 store.clearAll();*/
@@ -11,7 +13,6 @@ $add_task.on("submit",function(ev){
 	ev.preventDefault();//阻止提交默认事件，以执行后续
 	var obj={};
 	obj.content=$add_task.find("input").eq(0).val();
-
 	if(!obj.content)return;//没有输入时
 
 	add_task(obj);
@@ -40,9 +41,23 @@ function add_task(obj){
 function createHtml(){
 	var $task_list=$(".task-list");
 	$task_list.html(null); //先清空原来的页面，再根据原来的数据重新创建页面
+	var complete_items=[];
 	for(var i=0;i<task_list.length;i++){
-		var $item=bindHtml(task_list[i],i);
+		//console.log(complete_items)
+		if(!task_list[i].complete){
+			complete_items[i]=task_list[i];//把未完成的放进数组以便后面再生成到前面
+		}
+		else{
+			var $item=bindHtml(task_list[i],i);
+			$item.addClass("complated");//加横线
+			$task_list.prepend($item);
+		}
+	}
+	for(var j=0;j<complete_items.length;j++){
+		if(!complete_items[j])continue;
+		var $item=bindHtml(complete_items[j],j);
 		$task_list.prepend($item);
+		clock_time($item);//未完成闹钟提醒
 	}
 	bindDelete();//点击删除
 	task_list_detail();//点击详细
@@ -59,7 +74,7 @@ function  bindHtml(data,index){
 			'<span class="detail r-main">详细</span>'+
 			'</div>'+
 			'</li>'
-	return str;
+	return $(str);
 }
 
 /*------------------------删除----------------------------*/
@@ -73,10 +88,17 @@ function bindDelete(){
 }
 //删除数据
 function remove_task_list(index){
-	var off = confirm("你确定要删除么");
-	if(!off)return;
-	task_list.splice(index,1);
-	refresh_task_list();
+	$(".Alert").show();
+	$(".primary.confirm").bind("click",function(){
+		$(".Alert").hide();
+		task_list.splice(index,1);
+		refresh_task_list();
+		$(".primary.confirm").unbind("click");
+	})
+	$(".cancel").click(function(){
+		$(".Alert").hide();
+		$(".primary.confirm").unbind("click");
+	});
 }
 //更新存储
 function refresh_task_list(){
@@ -109,7 +131,7 @@ function create_detail(data,index){
 			'</div>'+
 			'<div class="remind input-item">'+
 			'<label for="b">提醒时间</label>'+
-			'<input id="b" class="datetime" type="date" value="'+(data.datetime||"")+'">'+
+			'<input class="datetime" id="datetimepicker" type="text" value="'+(data.datetime||"")+'">'+
 			'</div>'+
 			'<div class="input-item">'+
 			'<button class="update-detail-btn">更新</button>'+
@@ -119,6 +141,8 @@ function create_detail(data,index){
 			'</div>'+
 			'</div>';
 	$(".container").append(str);
+	$('#datetimepicker').datetimepicker();//引进日期插件
+	$.datetimepicker.setLocale('ch');
 	remove_detail();//点击关闭
 	task_update(data,index);//点击更新
 	doubleTitle();//双击题目修改
@@ -131,7 +155,7 @@ function remove_detail(){
 }
 /*------------------------详细 end-----------------------------*/
 
-/*-----------------------详细提交------------------------------*/
+/*-----------------------点击更新------------------------------*/
 //1点击更新 获取index
 //2新建一个对象，将输入数据传到对象
 //3将对象覆盖到数组的相应位置
@@ -144,10 +168,9 @@ function task_update(data,index) {
 		udate.content = $(this).find(".content").text();
 		udate.detail = $(this).find(".detailtext").val();
 		udate.datetime = $(this).find(".datetime").val();
-
 		//覆盖
 		up_data(udate, index)
-		//console.log(udate);
+		//console.log(new Date($(this).find(".datetime").val()).getTime());
 		//console.log(task_list);
 		//提交后关闭弹框
 		$(".task-detail-mask,.task-detail").remove();
@@ -161,7 +184,7 @@ function up_data(obj,index){
 	//存到本地
 	store.set("gg",task_list);
 }
-/*-----------------------详细提交end------------------------------*/
+/*-----------------------点击更新 end------------------------------*/
 //双击标题
 function doubleTitle(){
 	var $oH = $(".up-task .content");
@@ -194,5 +217,60 @@ function add_complated(){
 		else{
 			up_data({complete:true},index)
 		}
+		createHtml();
 	});
 }
+
+//闹钟提醒
+//1.获取 start_time=  当前的时间
+//2.过滤
+//3.end_time= 结束时间   task_list[i].datetime
+//得到毫秒
+//到时间了， 播放音乐 提醒    显示黄色条
+//关闭音乐
+
+var timer = null;
+
+function clock_time(obj){
+	if(!$(obj)[0]) return;
+
+	clearInterval($(obj)[0].timer);
+	$(obj)[0].timer = setInterval(function(){
+		//1.获取 start_time=  当前的时间
+		var start_time=new Date().getTime();
+		var $item=task_list;
+		for(var i=0;i<$item.length;i++){
+			//2.过滤
+			if($item[i].complete || !$item[i].datetime || $item[i].off) continue;
+			//3.end_time= 结束时间   task_list[i].datetime
+			var end_time = (new Date($item[i].datetime)).getTime();
+
+			if(end_time - start_time <=1){
+
+				clearInterval($(obj)[0].timer);
+				// 播放音乐
+				play_music();
+				//弹出提醒框
+				show_alert(task_list[i],i);
+			}
+		}
+	},1000);
+}
+//显示弹框
+	function show_alert(item,i) {
+		$(".msg").show();
+		$(".msg-content").text(item.content);
+
+		$(".msg-btn").click(function(){
+			up_data({off:true},i);  //添加属性
+			$(".msg").hide();
+		})
+	}
+
+//播放音乐
+function play_music() {
+	var music=document.getElementById("music");
+	music.play();
+}
+
+}());
